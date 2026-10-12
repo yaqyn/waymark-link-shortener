@@ -1,20 +1,38 @@
 package main
 
 import (
-	"fmt"
-	"io"
-	"net/http"
+	"context"
+	"errors"
+	"net/url"
+	"strings"
 )
 
-func checkDestination(targetURL string) error {
-	resp, err := http.DefaultClient.Get(targetURL)
-	if err != nil {
-		return fmt.Errorf("destination unreachable: %w", err)
+// Validate syntax without making an outbound request. A shortener should not
+// fetch user-supplied destinations (SSRF), or depend on their current availability.
+func validateDestination(ctx context.Context, raw string) (string, error) {
+	_, span := tracer.Start(ctx, "link.validate_destination")
+	defer span.End()
+	return normalizeDestination(raw)
+}
+
+func normalizeDestination(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if len(raw) == 0 || len(raw) > 4096 {
+		return "", errors.New("enter a URL of at most 4096 characters")
 	}
-	defer resp.Body.Close()
-	_, _ = io.ReadAll(resp.Body)
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("destination returned status %d", resp.StatusCode)
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" || u.Opaque != "" {
+		return "", errors.New("enter a complete http:// or https:// URL")
 	}
-	return nil
+	u.Scheme = strings.ToLower(u.Scheme)
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", errors.New("only HTTP and HTTPS URLs are supported")
+	}
+	if u.User != nil {
+		return "", errors.New("URLs containing usernames or passwords are not allowed")
+	}
+	if strings.ContainsAny(raw, "\r\n\x00") {
+		return "", errors.New("URL contains invalid characters")
+	}
+	return u.String(), nil
 }
