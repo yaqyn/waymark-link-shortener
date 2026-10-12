@@ -1,0 +1,8 @@
+{
+ "profile":"product-admin", "sourceRoots":["web"], "locale":"en",
+ "canonicalMap":"UX-CONTRACT.md",
+ "requiredCapabilities":["Form","Date","Scrollbar","Toast","CRUD"],
+ "ownership":{"Date":"native"},
+ "requiredCommands":["unit"], "commands":{"unit":"go test ./..."},
+ "evidence":{"crudFullFlow":"app_test.go","failurePaths":"app_test.go"}
+}

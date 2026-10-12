@@ -1,12 +1,16 @@
-# README visual system
+# Waymark artwork
 
-Canonical section meanings follow the workspace README standard. Icons share a 24-unit outline grid, 1.6-unit rounded strokes, and a dark palette-matched backing for visibility in light and dark GitHub themes. H2 icons render at 24 px; H3 icons at 20 px. Geometry is original and shared across the project collection.
+The cover, favicon and masthead share a route-marker motif. It represents an address that points to a destination; the diagram in the cover is illustrative, not a measured performance chart.
 
 | Role | Value |
 | --- | --- |
-| Primary accent | `#b5a5ed` |
-| Background / icon backing | `#171523` |
-| Foreground | `#f2eff8` |
-| Secondary accent / surface | `#2d2841` |
+| Background / icon backing | `#101b2a` |
+| Surface | `#18283a` |
+| Primary accent | `#a9d5ff` |
+| Foreground | `#f0f5fc` |
+| Muted text | `#afc0d4` |
+| Border | `#40556c` |
 
-Existing cover artwork remains canonical. Preserve its proportions and provenance; use secondary accents only where they clarify diagrams or product artwork. Heading icons carry the primary accent and retain a visible text label.
+Runtime values belong to `web/app.css`; DESIGN.md records the mapping. README icons use the original geometry from the workspace `readme-style/icons.json`, with 1.6-unit rounded strokes on a 24-unit grid. H2 icons render at 24 px with empty alt text and a visible section label. Dark backing preserves their appearance on light and dark GitHub themes.
+
+`cover.svg` is local vector artwork with a 1200 × 400 viewBox. `workspace.png` is a capture of the running browser interface with example links. Do not describe artwork as a screenshot or sample data as customer usage.
