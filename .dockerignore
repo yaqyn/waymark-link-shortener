@@ -1,0 +1,11 @@
+.git
+.env*
+data
+linko
+*.log*
+*.prof
+*.pprof.txt
+memory.svg
+premium-audit.json
+
+waymark
