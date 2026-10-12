@@ -3,3 +3,16 @@ linko
 *~
 vendor/
 *.log
+
+# Local configuration, profiling captures and generated verification artifacts
+.env
+.env.*
+!.env.example
+*.prof
+*.pprof.txt
+memory.svg
+*.log.gz
+premium-audit.json
+password.hash
+
+waymark
