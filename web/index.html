@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><title>Waymark — Private link workspace</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/app.css"><script src="/assets/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"><a class="brand" href="/" aria-label="Waymark home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 5v23M7 8h15l4 5-4 5H7M12 13h8"/></svg>waymark</a><div id="account" hidden><span id="account-name"></span><button id="logout" class="quiet" type="button" disabled>Sign out</button></div></header>
+<main id="main"><noscript><p>Please enable JavaScript to sign in and manage your links. Shared short links still work without it.</p></noscript>
+<section id="login-panel" class="login-panel">
+ <div class="intro"><h1>A shorter route<br>to your destination.</h1><p>Create a link worth sharing.<br>Keep its destination within reach.</p><svg class="link-art" viewBox="0 0 280 110" aria-hidden="true"><path d="M18 77h74a20 20 0 0020-20V38a20 20 0 0120-20h64M183 6l13 12-13 12M223 18v76M223 35h32l12 13-12 13h-32"/></svg></div>
+ <form id="login-form" novalidate class="surface login-form"><h2>Sign in to your workspace</h2><p class="muted">Create and manage your links. Shared links open without a login.</p>
+  <label for="username">Username</label><input id="username" name="username" autocomplete="username" required maxlength="64" aria-describedby="login-error">
+  <label for="password">Password</label><div class="password-field"><input id="password" name="password" type="password" autocomplete="current-password" required aria-describedby="login-error"><button id="show-password" type="button" disabled class="quiet" aria-label="Show password" aria-pressed="false">Show</button></div>
+  <p id="login-error" class="feedback" role="alert"></p><button id="login-submit" class="primary full" type="submit">Sign in</button>
+ </form>
+</section>
+<section id="workspace" hidden>
+ <div class="section-heading"><div><h1>Your link workspace</h1><p class="muted">A clear destination. A shorter way there.</p></div><button id="refresh" class="quiet" type="button" disabled>Refresh</button></div>
+ <div class="workspace-top"><form id="create-form" class="surface" novalidate><h2>Create a short link</h2>
+  <label for="destination">Destination URL</label><input id="destination" type="url" name="url" placeholder="https://example.com/a-long-link" autocomplete="url" maxlength="4096" required aria-describedby="create-error">
+  <div class="form-row"><div><label for="title">Title <span class="muted">optional</span></label><input id="title" name="title" maxlength="100" placeholder="A name to remember"></div><div><label for="code">Custom code <span class="muted">optional</span></label><input id="code" name="code" maxlength="64" placeholder="e.g. summer-guide" aria-describedby="code-help create-error"><small id="code-help">4–64 letters, numbers, _ or -</small></div></div>
+  <details><summary>Set an expiration</summary><label for="expires">Expires at <span class="muted">your local time</span></label><input id="expires" type="datetime-local" name="expires"></details>
+  <p id="create-error" class="feedback" role="alert"></p><button id="create-submit" class="primary" type="submit">Create short link</button>
+  <div id="created-result" class="result" hidden><span>Ready to share</span><a id="created-link" target="_blank" rel="noopener noreferrer"></a><button id="copy-created" class="quiet" type="button" disabled>Copy link</button></div>
+ </form>
+ <aside class="overview"><h2>At a glance</h2><dl><div><dt>Total links</dt><dd id="stat-links">—</dd></div><div><dt>Active links</dt><dd id="stat-active">—</dd></div><div><dt>Redirects served</dt><dd id="stat-clicks">—</dd></div></dl><p class="muted">Counts stay with your links, even after a restart.</p><p id="stats-error" class="feedback" role="status"></p></aside></div>
+ <section class="links-section" aria-labelledby="links-heading"><div class="section-heading"><h2 id="links-heading">Your links</h2><form id="search-form" class="search-field" role="search" novalidate><label class="sr-only" for="search">Search your links</label><input id="search" type="search" placeholder="Search title, URL or code" autocomplete="off"><button id="clear-search" type="button" disabled class="quiet" aria-label="Clear search" hidden>Clear</button></form></div>
+  <p id="list-status" class="feedback" role="status"></p><div class="table-scroll"><table><caption class="sr-only">Your short links, destinations, click counts and actions</caption><thead><tr><th scope="col">Link & destination</th><th scope="col">Clicks</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="link-list"></tbody></table></div>
+  <div id="empty" class="empty" hidden><h3>No links yet</h3><p>Create your first short link above. It will appear here.</p></div>
+  <nav class="pagination" aria-label="Link pages"><p id="page-status"></p><div><button id="previous" class="quiet" type="button" disabled>Previous</button><button id="next" class="quiet" type="button" disabled>Next</button></div></nav>
+ </section>
+</section>
+<p id="notice" class="notice" role="status" aria-live="polite"></p>
+</main>
+<footer><span>Waymark / Short links. Known destinations.</span><span>Built from the <a href="https://www.boot.dev" target="_blank" rel="noopener noreferrer">Boot.dev</a> course.</span></footer>
+<dialog id="edit-dialog" aria-labelledby="edit-heading"><form id="edit-form" novalidate><div class="section-heading"><h2 id="edit-heading">Edit link</h2><button id="close-edit" class="quiet" type="button" disabled>Cancel</button></div><p id="edit-code" class="mono"></p><label for="edit-url">Destination URL</label><input id="edit-url" type="url" required maxlength="4096" aria-describedby="edit-error"><label for="edit-title">Title</label><input id="edit-title" maxlength="100"><label for="edit-expires">Expires at <span class="muted">optional, local time</span></label><input id="edit-expires" type="datetime-local"><label class="checkbox"><input id="edit-disabled" type="checkbox"> Disable this link</label><p class="muted">Disabled links stop redirecting. You can enable them again later.</p><p id="edit-error" class="feedback" role="alert"></p><button id="edit-submit" class="primary" type="submit">Save changes</button></form></dialog>
+</body></html>
