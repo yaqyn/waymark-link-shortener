@@ -1,121 +1,233 @@
 package main
 
 import (
-	_ "embed"
+	"context"
+	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
+	"io/fs"
 	"net/http"
-	"net/url"
+	"strconv"
 	"strings"
-	"sync"
+	"time"
 
-	"boot.dev/linko/internal/store"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/yaqyn/waymark-link-shortener/internal/store"
 )
 
-const shortURLLen = len("http://localhost:8080/") + 6
-
-var (
-	redirectsMu sync.Mutex
-	redirects   []string
-)
-
-//go:embed index.html
-var indexPage string
+//go:embed web/*
+var webFiles embed.FS
 
 func (s *server) handlerIndex(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	io.WriteString(w, indexPage)
+	_, span := tracer.Start(r.Context(), "handler.index")
+	defer span.End()
+	data, err := webFiles.ReadFile("web/index.html")
+	if err != nil {
+		httpError(r.Context(), w, 500, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
+}
+func staticFiles() http.Handler {
+	files, _ := fs.Sub(webFiles, "web")
+	return http.StripPrefix("/assets/", http.FileServer(http.FS(files)))
+}
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(value)
 }
 
-func (s *server) handlerLogin(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+type linkInput struct {
+	URL       string     `json:"url"`
+	Code      string     `json:"code"`
+	Title     string     `json:"title"`
+	ExpiresAt *time.Time `json:"expires_at"`
+	Disabled  bool       `json:"disabled"`
+	Revision  uint64     `json:"revision"`
 }
 
+func validateInput(r *http.Request, input linkInput) (store.Link, error) {
+	destination, err := validateDestination(r.Context(), input.URL)
+	if err != nil {
+		return store.Link{}, err
+	}
+	input.Title = strings.TrimSpace(input.Title)
+	if len([]rune(input.Title)) > 100 {
+		return store.Link{}, errors.New("title must be at most 100 characters")
+	}
+	if input.Code != "" && !store.ValidCode(input.Code) {
+		return store.Link{}, errors.New("short code must contain 4–64 letters, numbers, underscores or hyphens and cannot be reserved")
+	}
+	if input.ExpiresAt != nil && !input.ExpiresAt.After(time.Now()) {
+		return store.Link{}, errors.New("expiration must be in the future")
+	}
+	return store.Link{LongURL: destination, ShortCode: input.Code, Title: input.Title, ExpiresAt: input.ExpiresAt, Disabled: input.Disabled}, nil
+}
 func (s *server) handlerShortenLink(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(UserContextKey).(string)
-	if !ok || user == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	longURL := r.FormValue("url")
-	if longURL == "" {
-		http.Error(w, "missing url parameter", http.StatusBadRequest)
-		return
-	}
-	fmt.Println("Shortening URL:", longURL)
-	u, err := url.Parse(longURL)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		http.Error(w, "invalid URL: must include scheme (http/https) and host", http.StatusBadRequest)
-		return
-	}
-	fmt.Printf("Parsed URL: scheme=%s, host=%s\n", u.Scheme, u.Host)
-	if err := checkDestination(longURL); err != nil {
-		http.Error(w, fmt.Sprintf("invalid target URL: %v", err), http.StatusBadRequest)
-		return
-	}
-	shortCode, err := s.store.Create(r.Context(), longURL)
-	if err != nil {
-		http.Error(w, "failed to shorten URL", http.StatusInternalServerError)
-		return
-	}
-	fmt.Printf("Generated short code: %s for URL: %s\n", shortCode, longURL)
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	io.WriteString(w, shortCode)
-}
-
-func (s *server) handlerRedirect(w http.ResponseWriter, r *http.Request) {
-	longURL, err := s.store.Lookup(r.Context(), r.PathValue("shortCode"))
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			http.Error(w, "not found", http.StatusNotFound)
-		} else {
-			fmt.Printf("failed to lookup URL: %v\n", err)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+	ctx, span := tracer.Start(r.Context(), "handler.shorten_link")
+	defer span.End()
+	r = r.WithContext(ctx)
+	var input linkInput
+	jsonRequest := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
+	if jsonRequest {
+		if err := decodeJSON(w, r, &input); err != nil {
+			httpError(ctx, w, 400, errors.New("invalid JSON request"))
+			return
 		}
-		return
+	} else {
+		r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
+		if err := r.ParseForm(); err != nil {
+			httpError(ctx, w, 400, errors.New("invalid or oversized form"))
+			return
+		}
+		input.URL = r.PostForm.Get("url")
+		input.Code = r.PostForm.Get("code")
+		input.Title = r.PostForm.Get("title")
 	}
-	_, _ = bcrypt.GenerateFromPassword([]byte(longURL), bcrypt.DefaultCost)
-	if err := checkDestination(longURL); err != nil {
-		http.Error(w, "destination unavailable", http.StatusBadGateway)
-		return
-	}
-
-	redirectsMu.Lock()
-	redirects = append(redirects, strings.Repeat(longURL, 1024))
-	redirectsMu.Unlock()
-
-	http.Redirect(w, r, longURL, http.StatusFound)
-}
-
-func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
-	codes, err := s.store.List(r.Context())
+	link, err := validateInput(r, input)
 	if err != nil {
-		fmt.Printf("failed to list URLs: %v\n", err)
-		http.Error(w, "failed to list URLs", http.StatusInternalServerError)
+		httpError(ctx, w, 400, err)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(codes)
-}
-
-func (s *server) handlerStats(w http.ResponseWriter, _ *http.Request) {
-	redirectsMu.Lock()
-	snapshot := redirects
-	redirectsMu.Unlock()
-
-	var bytesSaved int
-	for _, u := range snapshot {
-		bytesSaved += len(u) - shortURLLen
+	link, err = s.store.CreateLink(ctx, link)
+	if err != nil {
+		storeError(ctx, w, err)
+		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]int{
-		"redirects":   len(snapshot),
-		"bytes_saved": bytesSaved,
+	s.logger.InfoContext(ctx, "Created short link", "short_code", link.ShortCode)
+	w.Header().Set("Location", "/"+link.ShortCode)
+	if jsonRequest {
+		writeJSON(w, 201, link)
+	} else {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(201)
+		w.Write([]byte(link.ShortCode))
+	}
+}
+func (s *server) handlerRedirect(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handler.redirect")
+	defer span.End()
+	existing, lookupErr := s.store.Get(ctx, r.PathValue("shortCode"))
+	if lookupErr != nil {
+		storeError(ctx, w, lookupErr)
+		return
+	}
+	if _, validationErr := validateDestination(ctx, existing.LongURL); validationErr != nil {
+		httpError(ctx, w, 410, errors.New("link destination needs updating"))
+		return
+	}
+	var link store.Link
+	var err error
+	if r.Method == http.MethodHead {
+		link, err = s.store.Get(ctx, r.PathValue("shortCode"))
+		if err == nil && (link.Disabled || link.ExpiresAt != nil && !link.ExpiresAt.After(time.Now())) {
+			err = store.ErrGone
+		}
+	} else {
+		link, err = s.store.Visit(ctx, r.PathValue("shortCode"))
+	}
+	if err != nil {
+		storeError(ctx, w, err)
+		return
+	}
+	destination, err := validateDestination(ctx, link.LongURL)
+	if err != nil {
+		httpError(ctx, w, 500, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	http.Redirect(w, r, destination, http.StatusFound)
+}
+func storeError(ctx context.Context, w http.ResponseWriter, err error) {
+	status := 500
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		status = 404
+	case errors.Is(err, store.ErrGone):
+		status = 410
+	case errors.Is(err, store.ErrConflict):
+		status = 409
+	}
+	httpError(ctx, w, status, err)
+}
+func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handler.list_urls")
+	defer span.End()
+	links, err := s.store.List(ctx)
+	if err != nil {
+		storeError(ctx, w, err)
+		return
+	}
+	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	filtered := make([]store.Link, 0, len(links))
+	for _, link := range links {
+		if query == "" || strings.Contains(strings.ToLower(link.ShortCode+" "+link.Title+" "+link.LongURL), query) {
+			filtered = append(filtered, link)
+		}
+	}
+	page := 1
+	if value := r.URL.Query().Get("page"); value != "" {
+		page, err = strconv.Atoi(value)
+		if err != nil || page < 1 {
+			httpError(ctx, w, 400, errors.New("page must be a positive integer"))
+			return
+		}
+	}
+	const limit = 20
+	pages := max(1, (len(filtered)+limit-1)/limit)
+	page = min(page, pages)
+	start := min((page-1)*limit, len(filtered))
+	end := min(start+limit, len(filtered))
+	writeJSON(w, 200, map[string]any{"links": filtered[start:end], "page": page, "pages": pages, "total": len(filtered), "page_size": limit})
+}
+func (s *server) handlerUpdateLink(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handler.update_link")
+	defer span.End()
+	r = r.WithContext(ctx)
+	var input linkInput
+	if err := decodeJSON(w, r, &input); err != nil {
+		httpError(ctx, w, 400, errors.New("invalid JSON request"))
+		return
+	}
+	if input.Revision == 0 {
+		httpError(ctx, w, 400, errors.New("revision is required"))
+		return
+	}
+	replacement, err := validateInput(r, input)
+	if err != nil {
+		httpError(ctx, w, 400, err)
+		return
+	}
+	link, err := s.store.Update(ctx, r.PathValue("shortCode"), input.Revision, func(link *store.Link) error {
+		link.LongURL = replacement.LongURL
+		link.Title = replacement.Title
+		link.ExpiresAt = replacement.ExpiresAt
+		link.Disabled = replacement.Disabled
+		return nil
 	})
+	if err != nil {
+		storeError(ctx, w, err)
+		return
+	}
+	writeJSON(w, 200, link)
+}
+func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handler.stats")
+	defer span.End()
+	links, err := s.store.List(ctx)
+	if err != nil {
+		storeError(ctx, w, err)
+		return
+	}
+	var clicks uint64
+	active := 0
+	for _, link := range links {
+		clicks += link.Clicks
+		_, validationErr := normalizeDestination(link.LongURL)
+		if validationErr == nil && !link.Disabled && (link.ExpiresAt == nil || link.ExpiresAt.After(time.Now())) {
+			active++
+		}
+	}
+	writeJSON(w, 200, map[string]any{"links": len(links), "active": active, "redirects": clicks})
 }
