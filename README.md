@@ -1,4 +1,4 @@
-![Waymark — a route marker pointing a short link toward its destination](readme-assets/cover.svg)
+![Waymark — a route marker above an ink-blue landscape crossed by luminous signal paths](readme-assets/cover.png)
 
 # Waymark — Private link workspace
 

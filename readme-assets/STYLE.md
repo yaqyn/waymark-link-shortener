@@ -1,6 +1,6 @@
 # Waymark artwork
 
-The cover, favicon and masthead share a route-marker motif. It represents an address that points to a destination; the diagram in the cover is illustrative, not a measured performance chart.
+The cover, favicon and masthead share a route-marker motif. The cover places it over an ink-blue landscape with luminous signal paths, connecting destinations to request tracing. It is illustrative artwork, not a measured performance chart.
 
 | Role | Value |
 | --- | --- |
@@ -13,4 +13,4 @@ The cover, favicon and masthead share a route-marker motif. It represents an add
 
 Runtime values belong to `web/app.css`; DESIGN.md records the mapping. README icons use the original geometry from the workspace `readme-style/icons.json`, with 1.6-unit rounded strokes on a 24-unit grid. H2 icons render at 24 px with empty alt text and a visible section label. Dark backing preserves their appearance on light and dark GitHub themes.
 
-`cover.svg` is local vector artwork with a 1200 × 400 viewBox. `workspace.png` is a capture of the running browser interface with example links. Do not describe artwork as a screenshot or sample data as customer usage.
+`cover.png` is landscape artwork with the Waymark name, at 2172 × 724 pixels. `workspace.png` is a 945 × 1294 capture of the running browser interface with example links, taken directly from the page compositor without a cursor overlay. Do not describe artwork as a screenshot or sample data as customer usage.
