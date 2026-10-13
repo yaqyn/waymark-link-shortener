@@ -13,4 +13,4 @@ The cover, favicon and masthead share a route-marker motif. The cover places it 
 
 Runtime values belong to `web/app.css`; DESIGN.md records the mapping. README icons use the original geometry from the workspace `readme-style/icons.json`, with 1.6-unit rounded strokes on a 24-unit grid. H2 icons render at 24 px with empty alt text and a visible section label. Dark backing preserves their appearance on light and dark GitHub themes.
 
-`cover.png` is landscape artwork with the Waymark name, at 2172 × 724 pixels. `workspace.png` is a 945 × 1294 capture of the running browser interface with example links, taken directly from the page compositor without a cursor overlay. Do not describe artwork as a screenshot or sample data as customer usage.
+`cover.webp` is landscape artwork with the Waymark name, at 2172 × 724 pixels. `workspace.png` is a 945 × 1294 capture of the running browser interface with example links, taken directly from the page compositor without a cursor overlay. Do not describe artwork as a screenshot or sample data as customer usage.

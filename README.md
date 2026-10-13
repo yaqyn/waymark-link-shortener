@@ -1,4 +1,4 @@
-![Waymark — a route marker above an ink-blue landscape crossed by luminous signal paths](readme-assets/cover.png)
+![Waymark — a route marker above an ink-blue landscape crossed by luminous signal paths](readme-assets/cover.webp)
 
 # Waymark — Private link workspace
 
