@@ -119,7 +119,7 @@ The [observability walkthrough](docs/observability.md) explains structured error
 - **One trusted account.** Every authenticated client manages every link. No registration, separate tenants, roles or public abuse-reporting workflow.
 - **One writer per data directory.** Directory scans and synced per-click writes suit modest usage. Use a transactional database before adding replicas or high-volume analytics.
 - **HTTPS for production.** Configure your own password hash, preserve the original Host header through the proxy, restrict backend ingress and keep telemetry private. Secure cookies require HTTPS.
-- **Redirect destinations remain your responsibility.** Only HTTP/HTTPS URLs without embedded credentials are accepted. Syntax validation does not establish that a site is safe, reachable or trustworthy.
+- **Redirect destinations remain your responsibility.** Only HTTP/HTTPS URLs without embedded credentials are accepted; explicit ports must be between 1 and 65535. Syntax validation does not establish that a site is safe, reachable or trustworthy.
 - **Logs need care.** Sensitive keys, URL passwords and IPv4 final octets are redacted. Arbitrary paths and query strings can still contain secrets; do not include them in shared URLs or logs.
 
 See [operations and recovery](docs/operations.md) for backups, service limits, session behavior and troubleshooting.

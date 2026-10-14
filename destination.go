@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -30,6 +31,14 @@ func normalizeDestination(raw string) (string, error) {
 	}
 	if u.User != nil {
 		return "", errors.New("URLs containing usernames or passwords are not allowed")
+	}
+	if port := u.Port(); port != "" {
+		number, err := strconv.Atoi(port)
+		if err != nil || number < 1 || number > 65535 {
+			return "", errors.New("URL port must be between 1 and 65535")
+		}
+	} else if strings.HasSuffix(u.Host, ":") {
+		return "", errors.New("URL port must not be empty")
 	}
 	if strings.ContainsAny(raw, "\r\n\x00") {
 		return "", errors.New("URL contains invalid characters")

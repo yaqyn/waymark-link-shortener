@@ -126,7 +126,7 @@ func TestSessionAndCSRF(t *testing.T) {
 }
 func TestDestinationValidationAndNoFetch(t *testing.T) {
 	s := testServer(t)
-	for _, url := range []string{"javascript:alert(1)", "ftp://example.com", "https://user:secret@example.com", "/relative", "https://"} {
+	for _, url := range []string{"javascript:alert(1)", "ftp://example.com", "https://user:secret@example.com", "/relative", "https://", "https://example.com:0", "https://example.com:65536", "https://example.com:"} {
 		body, _ := json.Marshal(map[string]string{"url": url})
 		rr := request(s, "POST", "/api/shorten", string(body), true)
 		if rr.Code != 400 {
