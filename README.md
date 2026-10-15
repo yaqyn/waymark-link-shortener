@@ -20,7 +20,7 @@ The browser workspace manages links; anyone with a shared short address can foll
 
 - **Make links recognizable.** Use a generated code or choose your own, add a title, and copy the shareable address.
 - **Keep control of destinations.** Edit URLs, schedule expiration, or disable and re-enable a link. Revision checks reject stale edits.
-- **Find what you shared.** Search titles, URLs and codes; browse 20 links per page and inspect persistent click totals.
+- **Find what you shared.** Search titles, URLs and codes; browse 20 links per page and inspect persistent click totals. API clients can set `page_size` from 1 to 100.
 - **Run a contained workspace.** Cookie sessions protect management routes; public redirects validate destinations without fetching them.
 - **Inspect actual requests.** Structured logs, Prometheus counters and duration histograms, optional traces, and authenticated development profiles expose server behavior.
 

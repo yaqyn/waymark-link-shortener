@@ -148,6 +148,34 @@ func TestDestinationValidationAndNoFetch(t *testing.T) {
 		t.Fatalf("duplicate alias: %d", rr.Code)
 	}
 }
+
+func TestListPageSize(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "first-link")
+	createTestLink(t, s, "second-link")
+	for _, size := range []string{"0", "101", "invalid", "-1"} {
+		rr := httptest.NewRecorder()
+		s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?page_size="+size, nil))
+		if rr.Code != 400 {
+			t.Fatalf("page_size %s: %d", size, rr.Code)
+		}
+	}
+	rr := httptest.NewRecorder()
+	s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?page_size=1&page=2", nil))
+	var body struct {
+		Links    []store.Link `json:"links"`
+		Page     int          `json:"page"`
+		Pages    int          `json:"pages"`
+		Total    int          `json:"total"`
+		PageSize int          `json:"page_size"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if rr.Code != 200 || len(body.Links) != 1 || body.Page != 2 || body.Pages != 2 || body.Total != 2 || body.PageSize != 1 {
+		t.Fatalf("response: %d %s", rr.Code, rr.Body)
+	}
+}
 func TestExpiryAndPagination(t *testing.T) {
 	s := testServer(t)
 	expired := time.Now().Add(-time.Hour)

@@ -174,7 +174,14 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	const limit = 20
+	limit := 20
+	if value := r.URL.Query().Get("page_size"); value != "" {
+		limit, err = strconv.Atoi(value)
+		if err != nil || limit < 1 || limit > 100 {
+			httpError(ctx, w, 400, errors.New("page_size must be an integer between 1 and 100"))
+			return
+		}
+	}
 	pages := max(1, (len(filtered)+limit-1)/limit)
 	page = min(page, pages)
 	start := min((page-1)*limit, len(filtered))
