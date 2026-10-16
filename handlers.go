@@ -160,8 +160,20 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	disabledFilter := r.URL.Query().Get("disabled")
+	var disabled bool
+	if disabledFilter != "" {
+		if disabledFilter != "true" && disabledFilter != "false" {
+			httpError(ctx, w, 400, errors.New("disabled must be true or false"))
+			return
+		}
+		disabled = disabledFilter == "true"
+	}
 	filtered := make([]store.Link, 0, len(links))
 	for _, link := range links {
+		if disabledFilter != "" && link.Disabled != disabled {
+			continue
+		}
 		if query == "" || strings.Contains(strings.ToLower(link.ShortCode+" "+link.Title+" "+link.LongURL), query) {
 			filtered = append(filtered, link)
 		}

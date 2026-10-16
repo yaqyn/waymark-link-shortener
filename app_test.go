@@ -176,6 +176,37 @@ func TestListPageSize(t *testing.T) {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
 }
+
+func TestListDisabledFilter(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "enabled-link")
+	createTestLink(t, s, "disabled-link")
+	response := request(s, "PATCH", "/api/urls/disabled-link", `{"url":"https://example.com/long-path","disabled":true,"revision":1}`, true)
+	if response.Code != 200 {
+		t.Fatal(response.Body.String())
+	}
+	for _, tc := range []struct{ query, code string }{
+		{"true", "disabled-link"}, {"false", "enabled-link"},
+	} {
+		rr := httptest.NewRecorder()
+		s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?disabled="+tc.query, nil))
+		var result struct {
+			Links []store.Link `json:"links"`
+			Total int          `json:"total"`
+		}
+		if err := json.Unmarshal(rr.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		if rr.Code != 200 || result.Total != 1 || len(result.Links) != 1 || result.Links[0].ShortCode != tc.code {
+			t.Fatalf("filter %s: %d %s", tc.query, rr.Code, rr.Body)
+		}
+	}
+	rr := httptest.NewRecorder()
+	s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?disabled=unknown", nil))
+	if rr.Code != 400 {
+		t.Fatalf("invalid filter: %d", rr.Code)
+	}
+}
 func TestExpiryAndPagination(t *testing.T) {
 	s := testServer(t)
 	expired := time.Now().Add(-time.Hour)
