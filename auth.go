@@ -35,16 +35,18 @@ type authState struct {
 	username     string
 	passwordHash string
 	secure       bool
+	now          func() time.Time
 }
 
 func newAuth(username, hash string, secure bool) *authState {
-	return &authState{sessions: make(map[[32]byte]session), username: username, passwordHash: hash, secure: secure}
+	return &authState{sessions: make(map[[32]byte]session), username: username, passwordHash: hash, secure: secure, now: time.Now}
 }
 func (a *authState) allowLogin() bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if time.Since(a.window) >= time.Minute {
-		a.window = time.Now()
+	now := a.now()
+	if now.Sub(a.window) >= time.Minute {
+		a.window = now
 		a.attempts = 0
 	}
 	a.attempts++

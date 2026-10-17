@@ -319,6 +319,9 @@ func TestProductionBoundary(t *testing.T) {
 }
 func TestLoginLimitAndOversizedPayload(t *testing.T) {
 	s := testServer(t)
+	// Password hashing may take longer than the window on a loaded race-test runner.
+	now := time.Date(2026, 10, 17, 0, 0, 0, 0, time.UTC)
+	s.auth.now = func() time.Time { return now }
 	for range 30 {
 		if rr := request(s, "POST", "/api/login", `{"username":"no-user","password":"wrong"}`, false); rr.Code != 401 {
 			t.Fatalf("login: %d", rr.Code)
