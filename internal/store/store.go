@@ -241,6 +241,9 @@ func (s *Store) Update(ctx context.Context, code string, revision uint64, change
 }
 
 func (s *Store) List(ctx context.Context) ([]Link, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	entries, err := os.ReadDir(s.dir)
