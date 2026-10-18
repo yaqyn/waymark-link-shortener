@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -31,6 +32,11 @@ func normalizeDestination(raw string) (string, error) {
 	}
 	if u.User != nil {
 		return "", errors.New("URLs containing usernames or passwords are not allowed")
+	}
+	// Domain names are case-insensitive. Store one canonical spelling so equal
+	// destinations do not appear different in exports or audit logs.
+	if net.ParseIP(u.Hostname()) == nil {
+		u.Host = strings.ToLower(u.Host)
 	}
 	if port := u.Port(); port != "" {
 		number, err := strconv.Atoi(port)

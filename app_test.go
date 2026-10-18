@@ -149,6 +149,13 @@ func TestDestinationValidationAndNoFetch(t *testing.T) {
 	}
 }
 
+func TestDestinationNormalizesDomainCase(t *testing.T) {
+	got, err := normalizeDestination("HTTPS://Example.COM:8443/SomePath")
+	if err != nil || got != "https://example.com:8443/SomePath" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
+
 func TestListPageSize(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "first-link")
