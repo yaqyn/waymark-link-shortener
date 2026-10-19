@@ -43,6 +43,12 @@ func normalizeDestination(raw string) (string, error) {
 		if err != nil || number < 1 || number > 65535 {
 			return "", errors.New("URL port must be between 1 and 65535")
 		}
+		if (u.Scheme == "http" && port == "80") || (u.Scheme == "https" && port == "443") {
+			u.Host = u.Hostname()
+			if strings.Contains(u.Host, ":") {
+				u.Host = "[" + u.Host + "]"
+			}
+		}
 	} else if strings.HasSuffix(u.Host, ":") {
 		return "", errors.New("URL port must not be empty")
 	}

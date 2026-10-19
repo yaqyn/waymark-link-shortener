@@ -183,6 +183,14 @@ func TestListPageSize(t *testing.T) {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
 }
+func TestDestinationRemovesDefaultPorts(t *testing.T) {
+	for raw, want := range map[string]string{"http://Example.com:80/a": "http://example.com/a", "https://example.com:443/a": "https://example.com/a", "http://[::1]:80/a": "http://[::1]/a"} {
+		got, err := normalizeDestination(raw)
+		if err != nil || got != want {
+			t.Fatalf("%s: got %q, %v", raw, got, err)
+		}
+	}
+}
 
 func TestListDisabledFilter(t *testing.T) {
 	s := testServer(t)
