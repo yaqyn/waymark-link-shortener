@@ -191,6 +191,12 @@ func TestDestinationRemovesDefaultPorts(t *testing.T) {
 		}
 	}
 }
+func TestDestinationCanonicalizesEmptyRootPath(t *testing.T) {
+	got, err := normalizeDestination("https://example.com?source=course")
+	if err != nil || got != "https://example.com/?source=course" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
 
 func TestListDisabledFilter(t *testing.T) {
 	s := testServer(t)

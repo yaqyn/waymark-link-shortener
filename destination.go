@@ -55,5 +55,8 @@ func normalizeDestination(raw string) (string, error) {
 	if strings.ContainsAny(raw, "\r\n\x00") {
 		return "", errors.New("URL contains invalid characters")
 	}
+	if u.Path == "" {
+		u.Path = "/"
+	}
 	return u.String(), nil
 }
