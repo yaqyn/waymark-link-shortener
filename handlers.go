@@ -159,8 +159,16 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		storeError(ctx, w, err)
 		return
 	}
-	query := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
-	disabledFilter := r.URL.Query().Get("disabled")
+	values := r.URL.Query()
+	allowed := map[string]bool{"q": true, "disabled": true, "page": true, "page_size": true}
+	for name, entries := range values {
+		if !allowed[name] || len(entries) > 1 {
+			httpError(ctx, w, 400, errors.New("unknown or duplicate list parameter"))
+			return
+		}
+	}
+	query := strings.ToLower(strings.TrimSpace(values.Get("q")))
+	disabledFilter := values.Get("disabled")
 	var disabled bool
 	if disabledFilter != "" {
 		if disabledFilter != "true" && disabledFilter != "false" {
@@ -179,7 +187,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	page := 1
-	if value := r.URL.Query().Get("page"); value != "" {
+	if value := values.Get("page"); value != "" {
 		page, err = strconv.Atoi(value)
 		if err != nil || page < 1 {
 			httpError(ctx, w, 400, errors.New("page must be a positive integer"))
@@ -187,7 +195,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	limit := 20
-	if value := r.URL.Query().Get("page_size"); value != "" {
+	if value := values.Get("page_size"); value != "" {
 		limit, err = strconv.Atoi(value)
 		if err != nil || limit < 1 || limit > 100 {
 			httpError(ctx, w, 400, errors.New("page_size must be an integer between 1 and 100"))

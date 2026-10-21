@@ -183,6 +183,16 @@ func TestListPageSize(t *testing.T) {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
 }
+func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
+	s := testServer(t)
+	for _, query := range []string{"q=one&q=two", "page=1&page=2", "unknown=value"} {
+		rr := httptest.NewRecorder()
+		s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?"+query, nil))
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("%s: %d %s", query, rr.Code, rr.Body)
+		}
+	}
+}
 func TestDestinationRemovesDefaultPorts(t *testing.T) {
 	for raw, want := range map[string]string{"http://Example.com:80/a": "http://example.com/a", "https://example.com:443/a": "https://example.com/a", "http://[::1]:80/a": "http://[::1]/a"} {
 		got, err := normalizeDestination(raw)
