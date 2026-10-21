@@ -1,6 +1,6 @@
 module github.com/yaqyn/waymark-link-shortener
 
-go 1.27
+go 1.27.3
 
 require (
 	github.com/lmittmann/tint v1.2.1
