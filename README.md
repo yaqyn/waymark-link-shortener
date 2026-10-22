@@ -72,7 +72,7 @@ curl -I http://localhost:8899/api-guide
 
 Creation returns **201 Created** and a JSON record containing `short_code`, `long_url`, timestamps, state, click count and revision. The second command returns **302 Found** with a `Location` header. Reusing a code returns **409 Conflict**.
 
-See the [API reference](docs/api.md) for routes, request bodies, pagination, revision checks and error responses. API listings accept `disabled=true` or `disabled=false` to filter by the saved disabled flag before pagination; expiration is independent of that flag.
+See the [API reference](docs/api.md) for routes, request bodies, pagination, revision checks and error responses. API listings accept `disabled=true|false` for the saved flag, or `status=active|disabled|expired` for an operational view, before pagination.
 
 ## <img src="readme-assets/icons/configuration.svg" width="24" height="24" alt=""> Configuration
 

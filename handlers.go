@@ -160,7 +160,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := r.URL.Query()
-	allowed := map[string]bool{"q": true, "disabled": true, "page": true, "page_size": true}
+	allowed := map[string]bool{"q": true, "disabled": true, "status": true, "page": true, "page_size": true}
 	for name, entries := range values {
 		if !allowed[name] || len(entries) > 1 {
 			httpError(ctx, w, 400, errors.New("unknown or duplicate list parameter"))
@@ -169,6 +169,11 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	query := strings.ToLower(strings.TrimSpace(values.Get("q")))
 	disabledFilter := values.Get("disabled")
+	statusFilter := values.Get("status")
+	if statusFilter != "" && statusFilter != "active" && statusFilter != "disabled" && statusFilter != "expired" {
+		httpError(ctx, w, 400, errors.New("status must be active, disabled, or expired"))
+		return
+	}
 	var disabled bool
 	if disabledFilter != "" {
 		if disabledFilter != "true" && disabledFilter != "false" {
@@ -178,8 +183,13 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		disabled = disabledFilter == "true"
 	}
 	filtered := make([]store.Link, 0, len(links))
+	now := time.Now()
 	for _, link := range links {
 		if disabledFilter != "" && link.Disabled != disabled {
+			continue
+		}
+		expired := link.ExpiresAt != nil && !link.ExpiresAt.After(now)
+		if statusFilter == "active" && (link.Disabled || expired) || statusFilter == "disabled" && !link.Disabled || statusFilter == "expired" && !expired {
 			continue
 		}
 		if query == "" || strings.Contains(strings.ToLower(link.ShortCode+" "+link.Title+" "+link.LongURL), query) {

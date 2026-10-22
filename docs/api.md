@@ -19,7 +19,7 @@ curl -u frodo:ofTheNineFingers 'http://localhost:8899/api/urls?page=1&q=guide'
 | `POST /api/logout` | Invalidate the current browser session |
 | `GET /api/session` | Current account |
 | `POST /api/shorten` | Create; JSON response contains the complete link record |
-| `GET /api/urls?page=1&q=...` | Search; optional `disabled=true` or `disabled=false` filters the saved disabled flag before pagination (not expiration); 20 links/page by default, optional `page_size=1..100`, newest first; returns `links`, `page`, `pages`, `total`, `page_size` |
+| `GET /api/urls?page=1&q=...` | Search; optional `disabled=true|false` filters the saved flag, while `status=active|disabled|expired` filters operational state; 20 links/page by default, optional `page_size=1..100`, newest first; returns `links`, `page`, `pages`, `total`, `page_size` |
 | `PATCH /api/urls/{code}` | Update `url`, `title`, `expires_at`, `disabled`; include the last known `revision` |
 | `GET /api/stats` | Persistent total links, active links and redirects |
 | `GET /{code}` | Redirect or return 404/410 |
@@ -51,7 +51,7 @@ Send this to `PATCH /api/urls/api-guide` with the revision returned by your last
 
 | Status | Meaning |
 | --- | --- |
-| 400 | Invalid body, destination, code, title, expiry, page, page size or disabled filter |
+| 400 | Invalid body, destination, code, title, expiry, page, page size, disabled filter or status filter |
 | 401 | Authentication required or invalid credentials |
 | 403 | Cross-site mutation rejected |
 | 404 | Link or route not found |

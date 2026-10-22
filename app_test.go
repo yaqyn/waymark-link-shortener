@@ -248,6 +248,13 @@ func TestExpiryAndPagination(t *testing.T) {
 	if rr := request(s, "GET", "/expired", "", false); rr.Code != 410 {
 		t.Fatalf("expired link: %d", rr.Code)
 	}
+	status := request(s, "GET", "/api/urls?status=expired", "", true)
+	if status.Code != 200 || !strings.Contains(status.Body.String(), `"short_code":"expired"`) || !strings.Contains(status.Body.String(), `"total":1`) {
+		t.Fatalf("expired filter: %d %s", status.Code, status.Body.String())
+	}
+	if invalid := request(s, "GET", "/api/urls?status=unknown", "", true); invalid.Code != 400 {
+		t.Fatalf("invalid status filter: %d", invalid.Code)
+	}
 	for range 22 {
 		if _, err := s.store.Create(context.Background(), "https://example.org"); err != nil {
 			t.Fatal(err)
