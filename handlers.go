@@ -168,6 +168,10 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	query := strings.ToLower(strings.TrimSpace(values.Get("q")))
+	if len([]rune(query)) > 200 {
+		httpError(ctx, w, 400, errors.New("q must contain 200 characters or fewer"))
+		return
+	}
 	disabledFilter := values.Get("disabled")
 	statusFilter := values.Get("status")
 	if statusFilter != "" && statusFilter != "active" && statusFilter != "disabled" && statusFilter != "expired" {

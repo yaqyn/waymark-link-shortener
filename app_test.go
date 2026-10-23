@@ -193,6 +193,14 @@ func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 		}
 	}
 }
+func TestListRejectsOversizedSearch(t *testing.T) {
+	s := testServer(t)
+	rr := httptest.NewRecorder()
+	s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?q="+strings.Repeat("x", 201), nil))
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("oversized search: %d %s", rr.Code, rr.Body)
+	}
+}
 func TestDestinationRemovesDefaultPorts(t *testing.T) {
 	for raw, want := range map[string]string{"http://Example.com:80/a": "http://example.com/a", "https://example.com:443/a": "https://example.com/a", "http://[::1]:80/a": "http://[::1]/a"} {
 		got, err := normalizeDestination(raw)
