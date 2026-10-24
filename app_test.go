@@ -285,6 +285,18 @@ func TestExpiryAndPagination(t *testing.T) {
 		t.Fatalf("empty list is not array: %s", rr.Body)
 	}
 }
+func TestListSortOrder(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "first-link")
+	createTestLink(t, s, "second-link")
+	oldest := request(s, "GET", "/api/urls?sort=oldest", "", true)
+	if oldest.Code != 200 || strings.Index(oldest.Body.String(), "first-link") > strings.Index(oldest.Body.String(), "second-link") {
+		t.Fatalf("oldest order: %d %s", oldest.Code, oldest.Body.String())
+	}
+	if invalid := request(s, "GET", "/api/urls?sort=random", "", true); invalid.Code != 400 {
+		t.Fatalf("invalid sort: %d", invalid.Code)
+	}
+}
 func TestMetricsBoundedLabels(t *testing.T) {
 	s := testServer(t)
 	request(s, "GET", "/aaaa", "", false)

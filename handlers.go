@@ -160,7 +160,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := r.URL.Query()
-	allowed := map[string]bool{"q": true, "disabled": true, "status": true, "page": true, "page_size": true}
+	allowed := map[string]bool{"q": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true}
 	for name, entries := range values {
 		if !allowed[name] || len(entries) > 1 {
 			httpError(ctx, w, 400, errors.New("unknown or duplicate list parameter"))
@@ -174,6 +174,11 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	}
 	disabledFilter := values.Get("disabled")
 	statusFilter := values.Get("status")
+	sortOrder := values.Get("sort")
+	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" {
+		httpError(ctx, w, 400, errors.New("sort must be newest or oldest"))
+		return
+	}
 	if statusFilter != "" && statusFilter != "active" && statusFilter != "disabled" && statusFilter != "expired" {
 		httpError(ctx, w, 400, errors.New("status must be active, disabled, or expired"))
 		return
@@ -198,6 +203,11 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		}
 		if query == "" || strings.Contains(strings.ToLower(link.ShortCode+" "+link.Title+" "+link.LongURL), query) {
 			filtered = append(filtered, link)
+		}
+	}
+	if sortOrder == "oldest" {
+		for left, right := 0, len(filtered)-1; left < right; left, right = left+1, right-1 {
+			filtered[left], filtered[right] = filtered[right], filtered[left]
 		}
 	}
 	page := 1
