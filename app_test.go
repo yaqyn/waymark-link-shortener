@@ -183,6 +183,16 @@ func TestListPageSize(t *testing.T) {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
 }
+func TestListCanSortByTitle(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "zebra-link")
+	createTestLink(t, s, "alpha-link")
+	rr := httptest.NewRecorder()
+	s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?sort=title", nil))
+	if rr.Code != 200 || strings.Index(rr.Body.String(), "alpha-link") > strings.Index(rr.Body.String(), "zebra-link") {
+		t.Fatalf("title sort: %d %s", rr.Code, rr.Body.String())
+	}
+}
 func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 	s := testServer(t)
 	for _, query := range []string{"q=one&q=two", "page=1&page=2", "unknown=value"} {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io/fs"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -175,8 +176,8 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	disabledFilter := values.Get("disabled")
 	statusFilter := values.Get("status")
 	sortOrder := values.Get("sort")
-	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" {
-		httpError(ctx, w, 400, errors.New("sort must be newest or oldest"))
+	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" && sortOrder != "title" {
+		httpError(ctx, w, 400, errors.New("sort must be newest, oldest, or title"))
 		return
 	}
 	if statusFilter != "" && statusFilter != "active" && statusFilter != "disabled" && statusFilter != "expired" {
@@ -209,6 +210,11 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		for left, right := 0, len(filtered)-1; left < right; left, right = left+1, right-1 {
 			filtered[left], filtered[right] = filtered[right], filtered[left]
 		}
+	}
+	if sortOrder == "title" {
+		sort.SliceStable(filtered, func(i, j int) bool {
+			return strings.ToLower(filtered[i].Title) < strings.ToLower(filtered[j].Title)
+		})
 	}
 	page := 1
 	if value := values.Get("page"); value != "" {
