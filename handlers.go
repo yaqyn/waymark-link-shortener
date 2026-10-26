@@ -176,8 +176,8 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	disabledFilter := values.Get("disabled")
 	statusFilter := values.Get("status")
 	sortOrder := values.Get("sort")
-	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" && sortOrder != "title" {
-		httpError(ctx, w, 400, errors.New("sort must be newest, oldest, or title"))
+	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" && sortOrder != "title" && sortOrder != "title-desc" {
+		httpError(ctx, w, 400, errors.New("sort must be newest, oldest, title, or title-desc"))
 		return
 	}
 	if statusFilter != "" && statusFilter != "active" && statusFilter != "disabled" && statusFilter != "expired" {
@@ -211,9 +211,13 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 			filtered[left], filtered[right] = filtered[right], filtered[left]
 		}
 	}
-	if sortOrder == "title" {
+	if sortOrder == "title" || sortOrder == "title-desc" {
 		sort.SliceStable(filtered, func(i, j int) bool {
-			return strings.ToLower(filtered[i].Title) < strings.ToLower(filtered[j].Title)
+			left, right := strings.ToLower(filtered[i].Title), strings.ToLower(filtered[j].Title)
+			if sortOrder == "title-desc" {
+				return left > right
+			}
+			return left < right
 		})
 	}
 	page := 1

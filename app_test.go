@@ -187,10 +187,21 @@ func TestListCanSortByTitle(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "zebra-link")
 	createTestLink(t, s, "alpha-link")
+	if rr := request(s, "PATCH", "/api/urls/zebra-link", `{"url":"https://example.com/long-path","title":"Zebra","revision":1}`, true); rr.Code != 200 {
+		t.Fatalf("set zebra title: %d %s", rr.Code, rr.Body.String())
+	}
+	if rr := request(s, "PATCH", "/api/urls/alpha-link", `{"url":"https://example.com/long-path","title":"Alpha","revision":1}`, true); rr.Code != 200 {
+		t.Fatalf("set alpha title: %d %s", rr.Code, rr.Body.String())
+	}
 	rr := httptest.NewRecorder()
 	s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?sort=title", nil))
 	if rr.Code != 200 || strings.Index(rr.Body.String(), "alpha-link") > strings.Index(rr.Body.String(), "zebra-link") {
 		t.Fatalf("title sort: %d %s", rr.Code, rr.Body.String())
+	}
+	rr = httptest.NewRecorder()
+	s.handlerListURLs(rr, httptest.NewRequest("GET", "/api/urls?sort=title-desc", nil))
+	if rr.Code != 200 || strings.Index(rr.Body.String(), "zebra-link") > strings.Index(rr.Body.String(), "alpha-link") {
+		t.Fatalf("descending title sort: %d %s", rr.Code, rr.Body.String())
 	}
 }
 func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
