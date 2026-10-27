@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"mime"
 	"net/http"
 	"sort"
 	"strconv"
@@ -74,7 +75,12 @@ func (s *server) handlerShortenLink(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 	r = r.WithContext(ctx)
 	var input linkInput
-	jsonRequest := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
+	mediaType, _, mediaErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if mediaErr != nil || mediaType != "" && mediaType != "application/json" && mediaType != "application/x-www-form-urlencoded" {
+		httpError(ctx, w, http.StatusUnsupportedMediaType, errors.New("use application/json or form encoding"))
+		return
+	}
+	jsonRequest := mediaType == "application/json"
 	if jsonRequest {
 		if err := decodeJSON(w, r, &input); err != nil {
 			httpError(ctx, w, 400, errors.New("invalid JSON request"))

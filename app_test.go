@@ -159,6 +159,20 @@ func TestLinkTitlesRejectControlCharacters(t *testing.T) {
 	}
 }
 
+func TestShortenRejectsUnsupportedAndJSONLikeMediaTypes(t *testing.T) {
+	s := testServer(t)
+	for _, contentType := range []string{"application/jsonp", "text/plain", "not a media type"} {
+		r := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(`{"url":"https://example.com"}`))
+		r.Header.Set("Content-Type", contentType)
+		r.SetBasicAuth("frodo", "ofTheNineFingers")
+		response := httptest.NewRecorder()
+		s.httpServer.Handler.ServeHTTP(response, r)
+		if response.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("accepted %q: %d %s", contentType, response.Code, response.Body)
+		}
+	}
+}
+
 func TestDestinationNormalizesDomainCase(t *testing.T) {
 	got, err := normalizeDestination("HTTPS://Example.COM:8443/SomePath")
 	if err != nil || got != "https://example.com:8443/SomePath" {
