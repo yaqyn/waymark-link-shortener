@@ -52,6 +52,18 @@ func createTestLink(t *testing.T, s *server, code string) store.Link {
 	}
 	return link
 }
+func TestJSONContentTypeParsing(t *testing.T) {
+	for _, value := range []string{"application/json", "application/json; charset=utf-8"} {
+		if !isJSONContentType(value) {
+			t.Fatalf("rejected JSON content type %q", value)
+		}
+	}
+	for _, value := range []string{"", "application/json-malformed", "text/plain"} {
+		if isJSONContentType(value) {
+			t.Fatalf("accepted non-JSON content type %q", value)
+		}
+	}
+}
 func TestLinkLifecycle(t *testing.T) {
 	s := testServer(t)
 	if rr := request(s, "POST", "/api/shorten", `{"url":"https://example.com"}`, false); rr.Code != 401 {

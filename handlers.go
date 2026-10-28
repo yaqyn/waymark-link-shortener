@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"mime"
 	"net/http"
 	"sort"
 	"strconv"
@@ -37,6 +38,10 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(value)
+}
+func isJSONContentType(value string) bool {
+	mediaType, _, err := mime.ParseMediaType(value)
+	return err == nil && mediaType == "application/json"
 }
 
 type linkInput struct {
@@ -70,7 +75,7 @@ func (s *server) handlerShortenLink(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 	r = r.WithContext(ctx)
 	var input linkInput
-	jsonRequest := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
+	jsonRequest := isJSONContentType(r.Header.Get("Content-Type"))
 	if jsonRequest {
 		if err := decodeJSON(w, r, &input); err != nil {
 			httpError(ctx, w, 400, errors.New("invalid JSON request"))
