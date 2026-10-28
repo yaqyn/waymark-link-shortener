@@ -46,3 +46,11 @@ func Test_requestLogger(t *testing.T) {
 		t.Errorf("response status mismatch: got %d, want %d", rr.Code, expectedStatusCode)
 	}
 }
+
+func TestSecurityHeadersIsolateBrowserCapabilities(t *testing.T) {
+	response := httptest.NewRecorder()
+	securityHeaders(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	if response.Header().Get("Permissions-Policy") == "" || response.Header().Get("Cross-Origin-Resource-Policy") != "same-origin" {
+		t.Fatal("missing browser isolation headers")
+	}
+}
