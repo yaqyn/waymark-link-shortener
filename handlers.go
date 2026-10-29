@@ -170,7 +170,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := r.URL.Query()
-	allowed := map[string]bool{"q": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true}
+	allowed := map[string]bool{"q": true, "code": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true}
 	for name, entries := range values {
 		if !allowed[name] || len(entries) > 1 {
 			httpError(ctx, w, 400, errors.New("unknown or duplicate list parameter"))
@@ -180,6 +180,11 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(strings.TrimSpace(values.Get("q")))
 	if len([]rune(query)) > 200 {
 		httpError(ctx, w, 400, errors.New("q must contain 200 characters or fewer"))
+		return
+	}
+	codeFilter := values.Get("code")
+	if codeFilter != "" && !store.ValidCode(codeFilter) {
+		httpError(ctx, w, 400, errors.New("code must be a valid short code"))
 		return
 	}
 	disabledFilter := values.Get("disabled")
@@ -204,6 +209,9 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	filtered := make([]store.Link, 0, len(links))
 	now := time.Now()
 	for _, link := range links {
+		if codeFilter != "" && link.ShortCode != codeFilter {
+			continue
+		}
 		if disabledFilter != "" && link.Disabled != disabled {
 			continue
 		}

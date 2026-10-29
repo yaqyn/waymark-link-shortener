@@ -226,6 +226,19 @@ func TestListCanSortByTitle(t *testing.T) {
 		t.Fatalf("descending title sort: %d %s", rr.Code, rr.Body.String())
 	}
 }
+func TestListCanFilterByExactShortCode(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "alpha-code")
+	createTestLink(t, s, "beta-code")
+
+	rr := request(s, "GET", "/api/urls?code=alpha-code", "", true)
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "alpha-code") || strings.Contains(rr.Body.String(), "beta-code") {
+		t.Fatalf("exact code filter: %d %s", rr.Code, rr.Body.String())
+	}
+	if invalid := request(s, "GET", "/api/urls?code=bad%20code", "", true); invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid code filter: %d %s", invalid.Code, invalid.Body.String())
+	}
+}
 func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 	s := testServer(t)
 	for _, query := range []string{"q=one&q=two", "page=1&page=2", "unknown=value"} {
