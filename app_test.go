@@ -161,6 +161,16 @@ func TestDestinationValidationAndNoFetch(t *testing.T) {
 	}
 }
 
+func TestLinkTitlesRejectControlCharacters(t *testing.T) {
+	s := testServer(t)
+	for _, title := range []string{"first\\nsecond", "first\\tsecond", "before\\u0000after"} {
+		body := `{"url":"https://example.com","title":"` + title + `"}`
+		if rr := request(s, "POST", "/api/shorten", body, true); rr.Code != http.StatusBadRequest {
+			t.Fatalf("accepted title %q: %d %s", title, rr.Code, rr.Body)
+		}
+	}
+}
+
 func TestDestinationNormalizesDomainCase(t *testing.T) {
 	got, err := normalizeDestination("HTTPS://Example.COM:8443/SomePath")
 	if err != nil || got != "https://example.com:8443/SomePath" {

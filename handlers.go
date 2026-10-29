@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/yaqyn/waymark-link-shortener/internal/store"
 )
@@ -61,6 +62,9 @@ func validateInput(r *http.Request, input linkInput) (store.Link, error) {
 	input.Title = strings.TrimSpace(input.Title)
 	if len([]rune(input.Title)) > 100 {
 		return store.Link{}, errors.New("title must be at most 100 characters")
+	}
+	if strings.IndexFunc(input.Title, unicode.IsControl) >= 0 {
+		return store.Link{}, errors.New("title cannot contain control characters")
 	}
 	if input.Code != "" && !store.ValidCode(input.Code) {
 		return store.Link{}, errors.New("short code must contain 4–64 letters, numbers, underscores or hyphens and cannot be reserved")
