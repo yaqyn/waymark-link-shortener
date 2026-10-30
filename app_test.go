@@ -284,6 +284,7 @@ func TestListDisabledFilter(t *testing.T) {
 	if response.Code != 200 {
 		t.Fatal(response.Body.String())
 	}
+	if stats := request(s, "GET", "/api/stats", "", true); stats.Code != 200 || !strings.Contains(stats.Body.String(), `"disabled":1`) { t.Fatalf("disabled stats: %d %s", stats.Code, stats.Body.String()) }
 	for _, tc := range []struct{ query, code string }{
 		{"true", "disabled-link"}, {"false", "enabled-link"},
 	} {
@@ -320,6 +321,7 @@ func TestExpiryAndPagination(t *testing.T) {
 	if status.Code != 200 || !strings.Contains(status.Body.String(), `"short_code":"expired"`) || !strings.Contains(status.Body.String(), `"total":1`) {
 		t.Fatalf("expired filter: %d %s", status.Code, status.Body.String())
 	}
+	if stats := request(s, "GET", "/api/stats", "", true); stats.Code != 200 || !strings.Contains(stats.Body.String(), `"expired":1`) { t.Fatalf("expired stats: %d %s", stats.Code, stats.Body.String()) }
 	if invalid := request(s, "GET", "/api/urls?status=unknown", "", true); invalid.Code != 400 {
 		t.Fatalf("invalid status filter: %d", invalid.Code)
 	}

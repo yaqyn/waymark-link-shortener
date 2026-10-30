@@ -309,13 +309,16 @@ func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var clicks uint64
-	active := 0
+	active, disabled, expired := 0, 0, 0
+	now := time.Now()
 	for _, link := range links {
 		clicks += link.Clicks
+		if link.Disabled { disabled++ }
+		if link.ExpiresAt != nil && !link.ExpiresAt.After(now) { expired++ }
 		_, validationErr := normalizeDestination(link.LongURL)
-		if validationErr == nil && !link.Disabled && (link.ExpiresAt == nil || link.ExpiresAt.After(time.Now())) {
+		if validationErr == nil && !link.Disabled && (link.ExpiresAt == nil || link.ExpiresAt.After(now)) {
 			active++
 		}
 	}
-	writeJSON(w, 200, map[string]any{"links": len(links), "active": active, "redirects": clicks})
+	writeJSON(w, 200, map[string]any{"links": len(links), "active": active, "disabled": disabled, "expired": expired, "redirects": clicks})
 }
