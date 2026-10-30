@@ -259,6 +259,16 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	end := min(start+limit, len(filtered))
 	writeJSON(w, 200, map[string]any{"links": filtered[start:end], "page": page, "pages": pages, "total": len(filtered), "page_size": limit})
 }
+func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "handler.get_link")
+	defer span.End()
+	link, err := s.store.Get(ctx, r.PathValue("shortCode"))
+	if err != nil {
+		storeError(ctx, w, err)
+		return
+	}
+	writeJSON(w, 200, link)
+}
 func (s *server) handlerUpdateLink(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.update_link")
 	defer span.End()

@@ -96,6 +96,10 @@ func TestLinkLifecycle(t *testing.T) {
 	if rr := request(s, "GET", "/api/stats", "", true); rr.Code != 200 || !strings.Contains(rr.Body.String(), `"redirects":2`) {
 		t.Fatalf("stats: %d %s", rr.Code, rr.Body)
 	}
+	if rr := request(s, "GET", "/api/urls/example-link", "", true); rr.Code != 200 || !strings.Contains(rr.Body.String(), `"short_code":"example-link"`) {
+		t.Fatalf("link detail: %d %s", rr.Code, rr.Body.String())
+	}
+	if rr := request(s, "GET", "/api/urls/missing-link", "", true); rr.Code != 404 { t.Fatalf("missing detail: %d %s", rr.Code, rr.Body.String()) }
 }
 func TestSessionAndCSRF(t *testing.T) {
 	s := testServer(t)

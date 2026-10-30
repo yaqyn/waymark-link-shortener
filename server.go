@@ -71,6 +71,7 @@ func newServer(store *store.Store, port int, cancel context.CancelFunc, logger *
 	mux.HandleFunc("POST /api/logout", s.handlerLogout)
 	mux.Handle("GET /api/session", s.authMiddleware(http.HandlerFunc(s.handlerSession)))
 	mux.Handle("PATCH /api/urls/{shortCode}", s.authMiddleware(http.HandlerFunc(s.handlerUpdateLink)))
+	mux.Handle("GET /api/urls/{shortCode}", s.authMiddleware(http.HandlerFunc(s.handlerGetLink)))
 	mux.Handle("POST /api/shorten", s.authMiddleware(http.HandlerFunc(s.handlerShortenLink)))
 	mux.Handle("GET /api/stats", s.authMiddleware(http.HandlerFunc(s.handlerStats)))
 	mux.Handle("GET /api/urls", s.authMiddleware(http.HandlerFunc(s.handlerListURLs)))
