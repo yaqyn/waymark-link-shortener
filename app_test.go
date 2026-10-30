@@ -28,6 +28,7 @@ func testServer(t *testing.T) *server {
 	}
 	return newServer(st, 8899, func() {}, logger)
 }
+
 func request(s *server, method, path, body string, authenticated bool) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, path, strings.NewReader(body))
 	if body != "" {
@@ -40,6 +41,7 @@ func request(s *server, method, path, body string, authenticated bool) *httptest
 	s.httpServer.Handler.ServeHTTP(rr, r)
 	return rr
 }
+
 func createTestLink(t *testing.T, s *server, code string) store.Link {
 	t.Helper()
 	rr := request(s, "POST", "/api/shorten", `{"url":"https://example.com/long-path","code":"`+code+`","title":"Example"}`, true)
@@ -52,6 +54,7 @@ func createTestLink(t *testing.T, s *server, code string) store.Link {
 	}
 	return link
 }
+
 func TestJSONContentTypeParsing(t *testing.T) {
 	for _, value := range []string{"application/json", "application/json; charset=utf-8"} {
 		if !isJSONContentType(value) {
@@ -64,6 +67,7 @@ func TestJSONContentTypeParsing(t *testing.T) {
 		}
 	}
 }
+
 func TestLinkLifecycle(t *testing.T) {
 	s := testServer(t)
 	if rr := request(s, "POST", "/api/shorten", `{"url":"https://example.com"}`, false); rr.Code != 401 {
@@ -99,8 +103,11 @@ func TestLinkLifecycle(t *testing.T) {
 	if rr := request(s, "GET", "/api/urls/example-link", "", true); rr.Code != 200 || !strings.Contains(rr.Body.String(), `"short_code":"example-link"`) {
 		t.Fatalf("link detail: %d %s", rr.Code, rr.Body.String())
 	}
-	if rr := request(s, "GET", "/api/urls/missing-link", "", true); rr.Code != 404 { t.Fatalf("missing detail: %d %s", rr.Code, rr.Body.String()) }
+	if rr := request(s, "GET", "/api/urls/missing-link", "", true); rr.Code != 404 {
+		t.Fatalf("missing detail: %d %s", rr.Code, rr.Body.String())
+	}
 }
+
 func TestSessionAndCSRF(t *testing.T) {
 	s := testServer(t)
 	rr := request(s, "POST", "/api/login", `{"username":"frodo","password":"ofTheNineFingers"}`, false)
@@ -140,6 +147,7 @@ func TestSessionAndCSRF(t *testing.T) {
 		t.Fatalf("revoked session: %d", out.Code)
 	}
 }
+
 func TestDestinationValidationAndNoFetch(t *testing.T) {
 	s := testServer(t)
 	for _, url := range []string{"javascript:alert(1)", "ftp://example.com", "https://user:secret@example.com", "/relative", "https://", "https://example.com:0", "https://example.com:65536", "https://example.com:"} {
@@ -209,6 +217,7 @@ func TestListPageSize(t *testing.T) {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
 }
+
 func TestListCanSortByTitle(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "zebra-link")
@@ -230,6 +239,7 @@ func TestListCanSortByTitle(t *testing.T) {
 		t.Fatalf("descending title sort: %d %s", rr.Code, rr.Body.String())
 	}
 }
+
 func TestListCanFilterByExactShortCode(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "alpha-code")
@@ -243,6 +253,7 @@ func TestListCanFilterByExactShortCode(t *testing.T) {
 		t.Fatalf("invalid code filter: %d %s", invalid.Code, invalid.Body.String())
 	}
 }
+
 func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 	s := testServer(t)
 	for _, query := range []string{"q=one&q=two", "page=1&page=2", "unknown=value"} {
@@ -253,6 +264,7 @@ func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 		}
 	}
 }
+
 func TestListRejectsOversizedSearch(t *testing.T) {
 	s := testServer(t)
 	rr := httptest.NewRecorder()
@@ -261,6 +273,7 @@ func TestListRejectsOversizedSearch(t *testing.T) {
 		t.Fatalf("oversized search: %d %s", rr.Code, rr.Body)
 	}
 }
+
 func TestDestinationRemovesDefaultPorts(t *testing.T) {
 	for raw, want := range map[string]string{"http://Example.com:80/a": "http://example.com/a", "https://example.com:443/a": "https://example.com/a", "http://[::1]:80/a": "http://[::1]/a"} {
 		got, err := normalizeDestination(raw)
@@ -269,6 +282,7 @@ func TestDestinationRemovesDefaultPorts(t *testing.T) {
 		}
 	}
 }
+
 func TestDestinationCanonicalizesEmptyRootPath(t *testing.T) {
 	got, err := normalizeDestination("https://example.com?source=course")
 	if err != nil || got != "https://example.com/?source=course" {
@@ -284,7 +298,9 @@ func TestListDisabledFilter(t *testing.T) {
 	if response.Code != 200 {
 		t.Fatal(response.Body.String())
 	}
-	if stats := request(s, "GET", "/api/stats", "", true); stats.Code != 200 || !strings.Contains(stats.Body.String(), `"disabled":1`) { t.Fatalf("disabled stats: %d %s", stats.Code, stats.Body.String()) }
+	if stats := request(s, "GET", "/api/stats", "", true); stats.Code != 200 || !strings.Contains(stats.Body.String(), `"disabled":1`) {
+		t.Fatalf("disabled stats: %d %s", stats.Code, stats.Body.String())
+	}
 	for _, tc := range []struct{ query, code string }{
 		{"true", "disabled-link"}, {"false", "enabled-link"},
 	} {
@@ -307,6 +323,7 @@ func TestListDisabledFilter(t *testing.T) {
 		t.Fatalf("invalid filter: %d", rr.Code)
 	}
 }
+
 func TestExpiryAndPagination(t *testing.T) {
 	s := testServer(t)
 	expired := time.Now().Add(-time.Hour)
@@ -321,7 +338,9 @@ func TestExpiryAndPagination(t *testing.T) {
 	if status.Code != 200 || !strings.Contains(status.Body.String(), `"short_code":"expired"`) || !strings.Contains(status.Body.String(), `"total":1`) {
 		t.Fatalf("expired filter: %d %s", status.Code, status.Body.String())
 	}
-	if stats := request(s, "GET", "/api/stats", "", true); stats.Code != 200 || !strings.Contains(stats.Body.String(), `"expired":1`) { t.Fatalf("expired stats: %d %s", stats.Code, stats.Body.String()) }
+	if stats := request(s, "GET", "/api/stats", "", true); stats.Code != 200 || !strings.Contains(stats.Body.String(), `"expired":1`) {
+		t.Fatalf("expired stats: %d %s", stats.Code, stats.Body.String())
+	}
 	if invalid := request(s, "GET", "/api/urls?status=unknown", "", true); invalid.Code != 400 {
 		t.Fatalf("invalid status filter: %d", invalid.Code)
 	}
@@ -347,6 +366,7 @@ func TestExpiryAndPagination(t *testing.T) {
 		t.Fatalf("empty list is not array: %s", rr.Body)
 	}
 }
+
 func TestListSortOrder(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "first-link")
@@ -359,6 +379,7 @@ func TestListSortOrder(t *testing.T) {
 		t.Fatalf("invalid sort: %d", invalid.Code)
 	}
 }
+
 func TestMetricsBoundedLabels(t *testing.T) {
 	s := testServer(t)
 	request(s, "GET", "/aaaa", "", false)
@@ -374,6 +395,7 @@ func TestMetricsBoundedLabels(t *testing.T) {
 		t.Fatal("duration metric missing")
 	}
 }
+
 func TestRedaction(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{ReplaceAttr: replaceAttr}))
@@ -382,6 +404,7 @@ func TestRedaction(t *testing.T) {
 		t.Fatal("secret in logs")
 	}
 }
+
 func TestPortConflictReturns(t *testing.T) {
 	t.Setenv("OTEL_SERVICE_NAME", "")
 	t.Setenv("WAYMARK_TRACING", "")
@@ -437,6 +460,7 @@ func TestProductionBoundary(t *testing.T) {
 		t.Fatal("production allowed demo fallback")
 	}
 }
+
 func TestLoginLimitAndOversizedPayload(t *testing.T) {
 	s := testServer(t)
 	// Password hashing may take longer than the window on a loaded race-test runner.
@@ -459,6 +483,7 @@ func TestLoginLimitAndOversizedPayload(t *testing.T) {
 		t.Fatalf("multiple JSON objects accepted: %d", rr.Code)
 	}
 }
+
 func TestHeadAndUnsafeLegacy(t *testing.T) {
 	s := testServer(t)
 	link := createTestLink(t, s, "head-test")
@@ -471,7 +496,7 @@ func TestHeadAndUnsafeLegacy(t *testing.T) {
 	}
 	// The old course allowed credential-bearing URLs; never redirect or count them.
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "LEGACY"), []byte("https://demo:fake@example.com"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "LEGACY"), []byte("https://demo:fake@example.com"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	st, err := store.New(dir, nil)
@@ -487,6 +512,7 @@ func TestHeadAndUnsafeLegacy(t *testing.T) {
 		t.Fatal("unsafe legacy counted as visit")
 	}
 }
+
 func TestLoggerConfiguration(t *testing.T) {
 	t.Setenv("ENV", "production")
 	if _, _, err := initializeLogger(filepath.Join(t.TempDir(), "absent", "log")); err == nil {
@@ -517,6 +543,7 @@ func TestOversizedPasswordIsClientFailure(t *testing.T) {
 		t.Fatalf("long password produced status %d", rr.Code)
 	}
 }
+
 func TestRecoveryAndRequestID(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{ReplaceAttr: replaceAttr}))

@@ -31,15 +31,18 @@ func (s *server) handlerIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(data)
 }
+
 func staticFiles() http.Handler {
 	files, _ := fs.Sub(webFiles, "web")
 	return http.StripPrefix("/assets/", http.FileServer(http.FS(files)))
 }
+
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(value)
 }
+
 func isJSONContentType(value string) bool {
 	mediaType, _, err := mime.ParseMediaType(value)
 	return err == nil && mediaType == "application/json"
@@ -74,6 +77,7 @@ func validateInput(r *http.Request, input linkInput) (store.Link, error) {
 	}
 	return store.Link{LongURL: destination, ShortCode: input.Code, Title: input.Title, ExpiresAt: input.ExpiresAt, Disabled: input.Disabled}, nil
 }
+
 func (s *server) handlerShortenLink(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.shorten_link")
 	defer span.End()
@@ -115,6 +119,7 @@ func (s *server) handlerShortenLink(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(link.ShortCode))
 	}
 }
+
 func (s *server) handlerRedirect(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.redirect")
 	defer span.End()
@@ -149,6 +154,7 @@ func (s *server) handlerRedirect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	http.Redirect(w, r, destination, http.StatusFound)
 }
+
 func storeError(ctx context.Context, w http.ResponseWriter, err error) {
 	status := 500
 	switch {
@@ -161,6 +167,7 @@ func storeError(ctx context.Context, w http.ResponseWriter, err error) {
 	}
 	httpError(ctx, w, status, err)
 }
+
 func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.list_urls")
 	defer span.End()
@@ -259,6 +266,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	end := min(start+limit, len(filtered))
 	writeJSON(w, 200, map[string]any{"links": filtered[start:end], "page": page, "pages": pages, "total": len(filtered), "page_size": limit})
 }
+
 func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.get_link")
 	defer span.End()
@@ -269,6 +277,7 @@ func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, link)
 }
+
 func (s *server) handlerUpdateLink(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.update_link")
 	defer span.End()
@@ -300,6 +309,7 @@ func (s *server) handlerUpdateLink(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, link)
 }
+
 func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.stats")
 	defer span.End()
@@ -313,8 +323,12 @@ func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	for _, link := range links {
 		clicks += link.Clicks
-		if link.Disabled { disabled++ }
-		if link.ExpiresAt != nil && !link.ExpiresAt.After(now) { expired++ }
+		if link.Disabled {
+			disabled++
+		}
+		if link.ExpiresAt != nil && !link.ExpiresAt.After(now) {
+			expired++
+		}
 		_, validationErr := normalizeDestination(link.LongURL)
 		if validationErr == nil && !link.Disabled && (link.ExpiresAt == nil || link.ExpiresAt.After(now)) {
 			active++

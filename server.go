@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/yaqyn/waymark-link-shortener/internal/apperr"
 	"io"
 	"log/slog"
 	"net"
@@ -16,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yaqyn/waymark-link-shortener/internal/apperr"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yaqyn/waymark-link-shortener/internal/store"
@@ -262,6 +263,7 @@ func securityHeaders(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
 func recoverPanics(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
