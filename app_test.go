@@ -240,6 +240,18 @@ func TestListCanSortByTitle(t *testing.T) {
 	}
 }
 
+func TestListCanSortByClickCount(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "quiet-link")
+	createTestLink(t, s, "popular-link")
+	request(s, "GET", "/popular-link", "", false)
+	request(s, "GET", "/popular-link", "", false)
+	rr := request(s, "GET", "/api/urls?sort=clicks", "", true)
+	if rr.Code != 200 || strings.Index(rr.Body.String(), "popular-link") > strings.Index(rr.Body.String(), "quiet-link") {
+		t.Fatalf("click sort: %d %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestListCanFilterByExactShortCode(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "alpha-code")
