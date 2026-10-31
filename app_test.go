@@ -240,6 +240,18 @@ func TestListCanSortByTitle(t *testing.T) {
 	}
 }
 
+func TestListCanSortByClickCount(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "quiet-link")
+	createTestLink(t, s, "popular-link")
+	request(s, "GET", "/popular-link", "", false)
+	request(s, "GET", "/popular-link", "", false)
+	rr := request(s, "GET", "/api/urls?sort=clicks", "", true)
+	if rr.Code != 200 || strings.Index(rr.Body.String(), "popular-link") > strings.Index(rr.Body.String(), "quiet-link") {
+		t.Fatalf("click sort: %d %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestListCanFilterByExactShortCode(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "alpha-code")
@@ -251,6 +263,22 @@ func TestListCanFilterByExactShortCode(t *testing.T) {
 	}
 	if invalid := request(s, "GET", "/api/urls?code=bad%20code", "", true); invalid.Code != http.StatusBadRequest {
 		t.Fatalf("invalid code filter: %d %s", invalid.Code, invalid.Body.String())
+	}
+}
+
+func TestListCanFilterByDestinationDomain(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "example-link")
+	createTestLink(t, s, "other-link")
+	if rr := request(s, "PATCH", "/api/urls/other-link", `{"url":"https://other.test/path","revision":1}`, true); rr.Code != 200 {
+		t.Fatalf("update destination: %d %s", rr.Code, rr.Body.String())
+	}
+	rr := request(s, "GET", "/api/urls?domain=EXAMPLE.COM", "", true)
+	if rr.Code != 200 || !strings.Contains(rr.Body.String(), "example-link") || strings.Contains(rr.Body.String(), "other-link") {
+		t.Fatalf("domain filter: %d %s", rr.Code, rr.Body.String())
+	}
+	if invalid := request(s, "GET", "/api/urls?domain=https://example.com", "", true); invalid.Code != 400 {
+		t.Fatalf("invalid domain: %d %s", invalid.Code, invalid.Body.String())
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -177,7 +178,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := r.URL.Query()
-	allowed := map[string]bool{"q": true, "code": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true}
+	allowed := map[string]bool{"q": true, "code": true, "domain": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true}
 	for name, entries := range values {
 		if !allowed[name] || len(entries) > 1 {
 			httpError(ctx, w, 400, errors.New("unknown or duplicate list parameter"))
@@ -194,11 +195,16 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		httpError(ctx, w, 400, errors.New("code must be a valid short code"))
 		return
 	}
+	domainFilter := strings.ToLower(strings.TrimSpace(values.Get("domain")))
+	if domainFilter != "" && (strings.ContainsAny(domainFilter, "/:@") || len(domainFilter) > 253) {
+		httpError(ctx, w, 400, errors.New("domain must be a hostname"))
+		return
+	}
 	disabledFilter := values.Get("disabled")
 	statusFilter := values.Get("status")
 	sortOrder := values.Get("sort")
-	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" && sortOrder != "title" && sortOrder != "title-desc" {
-		httpError(ctx, w, 400, errors.New("sort must be newest, oldest, title, or title-desc"))
+	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" && sortOrder != "title" && sortOrder != "title-desc" && sortOrder != "clicks" {
+		httpError(ctx, w, 400, errors.New("sort must be newest, oldest, title, title-desc, or clicks"))
 		return
 	}
 	if statusFilter != "" && statusFilter != "active" && statusFilter != "disabled" && statusFilter != "expired" {
@@ -218,6 +224,12 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	for _, link := range links {
 		if codeFilter != "" && link.ShortCode != codeFilter {
 			continue
+		}
+		if domainFilter != "" {
+			destination, err := url.Parse(link.LongURL)
+			if err != nil || !strings.EqualFold(destination.Hostname(), domainFilter) {
+				continue
+			}
 		}
 		if disabledFilter != "" && link.Disabled != disabled {
 			continue
@@ -242,6 +254,14 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 				return left > right
 			}
 			return left < right
+		})
+	}
+	if sortOrder == "clicks" {
+		sort.SliceStable(filtered, func(i, j int) bool {
+			if filtered[i].Clicks == filtered[j].Clicks {
+				return filtered[i].ShortCode < filtered[j].ShortCode
+			}
+			return filtered[i].Clicks > filtered[j].Clicks
 		})
 	}
 	page := 1
