@@ -254,6 +254,22 @@ func TestListCanFilterByExactShortCode(t *testing.T) {
 	}
 }
 
+func TestListCanFilterByDestinationDomain(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "example-link")
+	createTestLink(t, s, "other-link")
+	if rr := request(s, "PATCH", "/api/urls/other-link", `{"url":"https://other.test/path","revision":1}`, true); rr.Code != 200 {
+		t.Fatalf("update destination: %d %s", rr.Code, rr.Body.String())
+	}
+	rr := request(s, "GET", "/api/urls?domain=EXAMPLE.COM", "", true)
+	if rr.Code != 200 || !strings.Contains(rr.Body.String(), "example-link") || strings.Contains(rr.Body.String(), "other-link") {
+		t.Fatalf("domain filter: %d %s", rr.Code, rr.Body.String())
+	}
+	if invalid := request(s, "GET", "/api/urls?domain=https://example.com", "", true); invalid.Code != 400 {
+		t.Fatalf("invalid domain: %d %s", invalid.Code, invalid.Body.String())
+	}
+}
+
 func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 	s := testServer(t)
 	for _, query := range []string{"q=one&q=two", "page=1&page=2", "unknown=value"} {
