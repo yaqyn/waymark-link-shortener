@@ -295,6 +295,12 @@ func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {
 		storeError(ctx, w, err)
 		return
 	}
+	etag := strconv.Quote(link.ShortCode + "-" + strconv.FormatUint(link.Revision, 10))
+	w.Header().Set("ETag", etag)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
 	writeJSON(w, 200, link)
 }
 

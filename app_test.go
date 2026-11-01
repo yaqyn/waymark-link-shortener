@@ -108,6 +108,24 @@ func TestLinkLifecycle(t *testing.T) {
 	}
 }
 
+func TestLinkDetailSupportsConditionalRequests(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "cached-link")
+	firstRequest := httptest.NewRequest("GET", "/api/urls/cached-link", nil)
+	firstRequest.SetPathValue("shortCode", "cached-link")
+	first := httptest.NewRecorder()
+	s.handlerGetLink(first, firstRequest)
+	etag := first.Header().Get("ETag")
+	conditionalRequest := httptest.NewRequest("GET", "/api/urls/cached-link", nil)
+	conditionalRequest.SetPathValue("shortCode", "cached-link")
+	conditionalRequest.Header.Set("If-None-Match", etag)
+	conditional := httptest.NewRecorder()
+	s.handlerGetLink(conditional, conditionalRequest)
+	if etag == "" || conditional.Code != http.StatusNotModified || conditional.Body.Len() != 0 {
+		t.Fatalf("etag=%q status=%d body=%q", etag, conditional.Code, conditional.Body.String())
+	}
+}
+
 func TestSessionAndCSRF(t *testing.T) {
 	s := testServer(t)
 	rr := request(s, "POST", "/api/login", `{"username":"frodo","password":"ofTheNineFingers"}`, false)
