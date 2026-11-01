@@ -178,7 +178,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	values := r.URL.Query()
-	allowed := map[string]bool{"q": true, "code": true, "domain": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true}
+	allowed := map[string]bool{"q": true, "code": true, "domain": true, "disabled": true, "status": true, "sort": true, "page": true, "page_size": true, "format": true}
 	for name, entries := range values {
 		if !allowed[name] || len(entries) > 1 {
 			httpError(ctx, w, 400, errors.New("unknown or duplicate list parameter"))
@@ -203,6 +203,11 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	disabledFilter := values.Get("disabled")
 	statusFilter := values.Get("status")
 	sortOrder := values.Get("sort")
+	format := values.Get("format")
+	if format != "" && format != "json" && format != "ndjson" {
+		httpError(ctx, w, 400, errors.New("format must be json or ndjson"))
+		return
+	}
 	if sortOrder != "" && sortOrder != "newest" && sortOrder != "oldest" && sortOrder != "title" && sortOrder != "title-desc" && sortOrder != "clicks" {
 		httpError(ctx, w, 400, errors.New("sort must be newest, oldest, title, title-desc, or clicks"))
 		return
@@ -284,6 +289,17 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	page = min(page, pages)
 	start := min((page-1)*limit, len(filtered))
 	end := min(start+limit, len(filtered))
+	if format == "ndjson" {
+		w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+		w.Header().Set("X-Total-Count", strconv.Itoa(len(filtered)))
+		w.Header().Set("X-Page", strconv.Itoa(page))
+		w.WriteHeader(http.StatusOK)
+		encoder := json.NewEncoder(w)
+		for _, link := range filtered[start:end] {
+			_ = encoder.Encode(link)
+		}
+		return
+	}
 	writeJSON(w, 200, map[string]any{"links": filtered[start:end], "page": page, "pages": pages, "total": len(filtered), "page_size": limit})
 }
 

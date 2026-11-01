@@ -300,6 +300,21 @@ func TestListCanFilterByDestinationDomain(t *testing.T) {
 	}
 }
 
+func TestListCanBeExportedAsNDJSON(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "first-link")
+	createTestLink(t, s, "second-link")
+	response := request(s, "GET", "/api/urls?format=ndjson&page_size=1", "", true)
+	lines := strings.Split(strings.TrimSpace(response.Body.String()), "\n")
+	var link store.Link
+	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "application/x-ndjson; charset=utf-8" || response.Header().Get("X-Total-Count") != "2" || len(lines) != 1 || json.Unmarshal([]byte(lines[0]), &link) != nil {
+		t.Fatalf("ndjson: %d %v %q", response.Code, response.Header(), response.Body.String())
+	}
+	if invalid := request(s, "GET", "/api/urls?format=csv", "", true); invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid format: %d %s", invalid.Code, invalid.Body.String())
+	}
+}
+
 func TestListRejectsUnknownAndDuplicateParameters(t *testing.T) {
 	s := testServer(t)
 	for _, query := range []string{"q=one&q=two", "page=1&page=2", "unknown=value"} {
