@@ -50,12 +50,13 @@ func isJSONContentType(value string) bool {
 }
 
 type linkInput struct {
-	URL       string     `json:"url"`
-	Code      string     `json:"code"`
-	Title     string     `json:"title"`
-	ExpiresAt *time.Time `json:"expires_at"`
-	Disabled  bool       `json:"disabled"`
-	Revision  uint64     `json:"revision"`
+	URL         string     `json:"url"`
+	Code        string     `json:"code"`
+	Title       string     `json:"title"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	Disabled    bool       `json:"disabled"`
+	Revision    uint64     `json:"revision"`
+	ResetClicks bool       `json:"reset_clicks"`
 }
 
 func validateInput(r *http.Request, input linkInput) (store.Link, error) {
@@ -343,6 +344,10 @@ func (s *server) handlerUpdateLink(w http.ResponseWriter, r *http.Request) {
 		link.Title = replacement.Title
 		link.ExpiresAt = replacement.ExpiresAt
 		link.Disabled = replacement.Disabled
+		if input.ResetClicks {
+			link.Clicks = 0
+			link.LastVisitedAt = nil
+		}
 		return nil
 	})
 	if err != nil {

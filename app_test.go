@@ -270,6 +270,16 @@ func TestListCanSortByClickCount(t *testing.T) {
 	}
 }
 
+func TestUpdateCanResetClickHistory(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "reset-link")
+	request(s, "GET", "/reset-link", "", false)
+	response := request(s, "PATCH", "/api/urls/reset-link", `{"url":"https://example.com/long-path","revision":1,"reset_clicks":true}`, true)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"clicks":0`) || strings.Contains(response.Body.String(), `"last_visited_at"`) {
+		t.Fatalf("reset clicks: %d %s", response.Code, response.Body.String())
+	}
+}
+
 func TestListCanFilterByExactShortCode(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "alpha-code")
