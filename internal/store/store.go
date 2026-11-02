@@ -183,6 +183,7 @@ func (s *Store) Get(ctx context.Context, code string) (Link, error) {
 	defer s.mu.RUnlock()
 	return s.read(code)
 }
+
 func (s *Store) Lookup(ctx context.Context, code string) (string, error) {
 	link, err := s.Get(ctx, code)
 	if err != nil {
@@ -238,6 +239,29 @@ func (s *Store) Update(ctx context.Context, code string, revision uint64, change
 		return Link{}, err
 	}
 	return link, nil
+}
+
+func (s *Store) Delete(ctx context.Context, code string, revision uint64) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	link, err := s.read(code)
+	if err != nil {
+		return err
+	}
+	if revision != link.Revision {
+		return ErrConflict
+	}
+	if err := os.Remove(filepath.Join(s.dir, link.ShortCode)); err != nil {
+		return err
+	}
+	directory, err := os.Open(s.dir)
+	if err != nil {
+		return err
+	}
+	return errors.Join(directory.Sync(), directory.Close())
 }
 
 func (s *Store) List(ctx context.Context) ([]Link, error) {

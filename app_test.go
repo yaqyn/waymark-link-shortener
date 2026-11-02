@@ -280,6 +280,20 @@ func TestUpdateCanResetClickHistory(t *testing.T) {
 	}
 }
 
+func TestDeleteRequiresCurrentRevision(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "delete-link")
+	if stale := request(s, "DELETE", "/api/urls/delete-link?revision=2", "", true); stale.Code != http.StatusConflict {
+		t.Fatalf("stale delete: %d %s", stale.Code, stale.Body.String())
+	}
+	if removed := request(s, "DELETE", "/api/urls/delete-link?revision=1", "", true); removed.Code != http.StatusNoContent {
+		t.Fatalf("delete: %d %s", removed.Code, removed.Body.String())
+	}
+	if missing := request(s, "GET", "/api/urls/delete-link", "", true); missing.Code != http.StatusNotFound {
+		t.Fatalf("deleted link remained: %d %s", missing.Code, missing.Body.String())
+	}
+}
+
 func TestListCanFilterByExactShortCode(t *testing.T) {
 	s := testServer(t)
 	createTestLink(t, s, "alpha-code")

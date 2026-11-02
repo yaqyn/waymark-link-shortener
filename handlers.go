@@ -357,6 +357,20 @@ func (s *server) handlerUpdateLink(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, link)
 }
 
+func (s *server) handlerDeleteLink(w http.ResponseWriter, r *http.Request) {
+	value := r.URL.Query().Get("revision")
+	revision, err := strconv.ParseUint(value, 10, 64)
+	if err != nil || revision == 0 {
+		httpError(r.Context(), w, http.StatusBadRequest, errors.New("revision must be a positive integer"))
+		return
+	}
+	if err := s.store.Delete(r.Context(), r.PathValue("shortCode"), revision); err != nil {
+		storeError(r.Context(), w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(r.Context(), "handler.stats")
 	defer span.End()
