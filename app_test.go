@@ -238,6 +238,14 @@ func TestListPageSize(t *testing.T) {
 	if rr.Code != 200 || len(body.Links) != 1 || body.Page != 2 || body.Pages != 2 || body.Total != 2 || body.PageSize != 1 {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
+	if link := rr.Header().Get("Link"); !strings.Contains(link, "page=1") || !strings.Contains(link, `rel="prev"`) {
+		t.Fatalf("previous page link: %q", link)
+	}
+	first := httptest.NewRecorder()
+	s.handlerListURLs(first, httptest.NewRequest("GET", "/api/urls?page_size=1&page=1", nil))
+	if link := first.Header().Get("Link"); !strings.Contains(link, "page=2") || !strings.Contains(link, `rel="next"`) {
+		t.Fatalf("next page link: %q", link)
+	}
 }
 
 func TestListCanSortByTitle(t *testing.T) {

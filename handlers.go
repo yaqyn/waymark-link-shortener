@@ -290,6 +290,24 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	page = min(page, pages)
 	start := min((page-1)*limit, len(filtered))
 	end := min(start+limit, len(filtered))
+	pageLinks := []string{}
+	for _, target := range []struct {
+		page int
+		rel  string
+	}{{page - 1, "prev"}, {page + 1, "next"}} {
+		if target.page < 1 || target.page > pages {
+			continue
+		}
+		query := make(url.Values, len(values))
+		for name, entries := range values {
+			query[name] = append([]string(nil), entries...)
+		}
+		query.Set("page", strconv.Itoa(target.page))
+		pageLinks = append(pageLinks, "</api/urls?"+query.Encode()+">; rel=\""+target.rel+"\"")
+	}
+	if len(pageLinks) > 0 {
+		w.Header().Set("Link", strings.Join(pageLinks, ", "))
+	}
 	if format == "ndjson" {
 		w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
 		w.Header().Set("X-Total-Count", strconv.Itoa(len(filtered)))
