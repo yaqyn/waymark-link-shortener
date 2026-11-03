@@ -124,6 +124,10 @@ func TestLinkDetailSupportsConditionalRequests(t *testing.T) {
 	if etag == "" || conditional.Code != http.StatusNotModified || conditional.Body.Len() != 0 {
 		t.Fatalf("etag=%q status=%d body=%q", etag, conditional.Code, conditional.Body.String())
 	}
+	head := request(s, http.MethodHead, "/api/urls/cached-link", "", true)
+	if head.Code != http.StatusOK || head.Body.Len() != 0 || head.Header().Get("ETag") != etag {
+		t.Fatalf("HEAD status=%d etag=%q body=%q", head.Code, head.Header().Get("ETag"), head.Body.String())
+	}
 }
 
 func TestSessionAndCSRF(t *testing.T) {

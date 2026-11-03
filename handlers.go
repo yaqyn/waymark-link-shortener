@@ -318,6 +318,11 @@ func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
+	if r.Method == http.MethodHead {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	writeJSON(w, 200, link)
 }
 
