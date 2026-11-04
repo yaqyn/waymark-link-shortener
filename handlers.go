@@ -308,10 +308,13 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	if len(pageLinks) > 0 {
 		w.Header().Set("Link", strings.Join(pageLinks, ", "))
 	}
+	w.Header().Set("X-Total-Count", strconv.Itoa(len(filtered)))
+	w.Header().Set("X-Page", strconv.Itoa(page))
+	w.Header().Set("X-Page-Size", strconv.Itoa(limit))
+	w.Header().Set("X-Result-Count", strconv.Itoa(end-start))
+	w.Header().Set("X-Has-More", strconv.FormatBool(page < pages))
 	if format == "ndjson" {
 		w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
-		w.Header().Set("X-Total-Count", strconv.Itoa(len(filtered)))
-		w.Header().Set("X-Page", strconv.Itoa(page))
 		w.WriteHeader(http.StatusOK)
 		encoder := json.NewEncoder(w)
 		for _, link := range filtered[start:end] {

@@ -238,6 +238,9 @@ func TestListPageSize(t *testing.T) {
 	if rr.Code != 200 || len(body.Links) != 1 || body.Page != 2 || body.Pages != 2 || body.Total != 2 || body.PageSize != 1 {
 		t.Fatalf("response: %d %s", rr.Code, rr.Body)
 	}
+	if rr.Header().Get("X-Page") != "2" || rr.Header().Get("X-Page-Size") != "1" || rr.Header().Get("X-Result-Count") != "1" || rr.Header().Get("X-Has-More") != "false" {
+		t.Fatalf("pagination headers: %v", rr.Header())
+	}
 	if link := rr.Header().Get("Link"); !strings.Contains(link, "page=1") || !strings.Contains(link, `rel="prev"`) {
 		t.Fatalf("previous page link: %q", link)
 	}
