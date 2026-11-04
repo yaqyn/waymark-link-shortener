@@ -290,6 +290,10 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	page = min(page, pages)
 	start := min((page-1)*limit, len(filtered))
 	end := min(start+limit, len(filtered))
+	var clickTotal uint64
+	for _, link := range filtered {
+		clickTotal += link.Clicks
+	}
 	pageLinks := []string{}
 	for _, target := range []struct {
 		page int
@@ -313,6 +317,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Page-Size", strconv.Itoa(limit))
 	w.Header().Set("X-Result-Count", strconv.Itoa(end-start))
 	w.Header().Set("X-Has-More", strconv.FormatBool(page < pages))
+	w.Header().Set("X-Click-Total", strconv.FormatUint(clickTotal, 10))
 	if format == "ndjson" {
 		w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
@@ -322,7 +327,7 @@ func (s *server) handlerListURLs(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	writeJSON(w, 200, map[string]any{"links": filtered[start:end], "page": page, "pages": pages, "total": len(filtered), "page_size": limit})
+	writeJSON(w, 200, map[string]any{"links": filtered[start:end], "page": page, "pages": pages, "total": len(filtered), "page_size": limit, "clicks_total": clickTotal})
 }
 
 func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {

@@ -283,6 +283,9 @@ func TestListCanSortByClickCount(t *testing.T) {
 	if rr.Code != 200 || strings.Index(rr.Body.String(), "popular-link") > strings.Index(rr.Body.String(), "quiet-link") {
 		t.Fatalf("click sort: %d %s", rr.Code, rr.Body.String())
 	}
+	if !strings.Contains(rr.Body.String(), `"clicks_total":2`) || rr.Header().Get("X-Click-Total") != "2" {
+		t.Fatalf("click total: headers=%v body=%s", rr.Header(), rr.Body.String())
+	}
 }
 
 func TestUpdateCanResetClickHistory(t *testing.T) {
