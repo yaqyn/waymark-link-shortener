@@ -143,6 +143,19 @@ func TestLinkDetailCanReturnTheDestinationAsPlainText(t *testing.T) {
 	}
 }
 
+func TestStatsIdentifyTheMostClickedLink(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "alpha-link")
+	createTestLink(t, s, "beta-link")
+	request(s, "GET", "/beta-link", "", false)
+	request(s, "GET", "/beta-link", "", false)
+	request(s, "GET", "/alpha-link", "", false)
+	stats := request(s, "GET", "/api/stats", "", true)
+	if stats.Code != http.StatusOK || !strings.Contains(stats.Body.String(), `"most_clicked_code":"beta-link"`) || !strings.Contains(stats.Body.String(), `"most_clicked_count":2`) {
+		t.Fatalf("stats: %d %s", stats.Code, stats.Body.String())
+	}
+}
+
 func TestSessionAndCSRF(t *testing.T) {
 	s := testServer(t)
 	rr := request(s, "POST", "/api/login", `{"username":"frodo","password":"ofTheNineFingers"}`, false)

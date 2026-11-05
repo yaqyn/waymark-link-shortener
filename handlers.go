@@ -422,9 +422,14 @@ func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
 	}
 	var clicks uint64
 	active, disabled, expired := 0, 0, 0
+	mostClickedCode := ""
+	var mostClickedCount uint64
 	now := time.Now()
 	for _, link := range links {
 		clicks += link.Clicks
+		if link.Clicks > mostClickedCount || link.Clicks == mostClickedCount && (mostClickedCode == "" || link.ShortCode < mostClickedCode) {
+			mostClickedCode, mostClickedCount = link.ShortCode, link.Clicks
+		}
 		if link.Disabled {
 			disabled++
 		}
@@ -436,5 +441,5 @@ func (s *server) handlerStats(w http.ResponseWriter, r *http.Request) {
 			active++
 		}
 	}
-	writeJSON(w, 200, map[string]any{"links": len(links), "active": active, "disabled": disabled, "expired": expired, "redirects": clicks})
+	writeJSON(w, 200, map[string]any{"links": len(links), "active": active, "disabled": disabled, "expired": expired, "redirects": clicks, "most_clicked_code": mostClickedCode, "most_clicked_count": mostClickedCount})
 }
