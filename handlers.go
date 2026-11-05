@@ -344,6 +344,16 @@ func (s *server) handlerGetLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
+	w.Header().Add("Vary", "Accept")
+	mediaType, _, _ := mime.ParseMediaType(r.Header.Get("Accept"))
+	if mediaType == "text/plain" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		if r.Method != http.MethodHead {
+			_, _ = w.Write([]byte(link.LongURL + "\n"))
+		}
+		return
+	}
 	if r.Method == http.MethodHead {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)

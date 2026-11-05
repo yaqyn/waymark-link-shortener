@@ -130,6 +130,19 @@ func TestLinkDetailSupportsConditionalRequests(t *testing.T) {
 	}
 }
 
+func TestLinkDetailCanReturnTheDestinationAsPlainText(t *testing.T) {
+	s := testServer(t)
+	createTestLink(t, s, "plain-link")
+	req := httptest.NewRequest(http.MethodGet, "/api/urls/plain-link", nil)
+	req.SetPathValue("shortCode", "plain-link")
+	req.Header.Set("Accept", "text/plain")
+	response := httptest.NewRecorder()
+	s.handlerGetLink(response, req)
+	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "text/plain; charset=utf-8" || response.Body.String() != "https://example.com/long-path\n" {
+		t.Fatalf("status=%d headers=%v body=%q", response.Code, response.Header(), response.Body.String())
+	}
+}
+
 func TestSessionAndCSRF(t *testing.T) {
 	s := testServer(t)
 	rr := request(s, "POST", "/api/login", `{"username":"frodo","password":"ofTheNineFingers"}`, false)
